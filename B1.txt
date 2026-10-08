@@ -1,0 +1,301 @@
+# Q1. Write a python program to implement and plot the given activation functions of neural networks: Linear, Sigmoid, Tanh, ReLU and Softmax.
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+x = np.linspace(-10, 10, 200)
+
+linear = x
+sigmoid = 1 / (1 + np.exp(-x))
+tanh = np.tanh(x)
+relu = np.maximum(0, x)
+
+
+exp_x = np.exp(x - np.max(x))
+softmax = exp_x / np.sum(exp_x)
+
+
+plt.figure(figsize=(12,8))
+
+plt.subplot(2,3,1)
+plt.plot(x, linear)
+plt.title("Linear")
+plt.grid(True)
+
+plt.subplot(2,3,2)
+plt.plot(x, sigmoid)
+plt.title("Sigmoid")
+plt.grid(True)
+
+plt.subplot(2,3,3)
+plt.plot(x, tanh)
+plt.title("Tanh")
+plt.grid(True)
+
+plt.subplot(2,3,4)
+plt.plot(x, relu)
+plt.title("ReLU")
+plt.grid(True)
+
+plt.subplot(2,3,5)
+plt.plot(x, softmax)
+plt.title("Softmax")
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+# Q2. Implement a Single Layer Perceptron using a TensorFlow library and calculate the accuracy of the model on the testing data using the MNIST dataset.
+import tensorflow as tf
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Flatten, Dense
+import matplotlib.pyplot as plt
+
+
+(X_train, y_train), (X_test, y_test) = mnist.load_data()
+
+
+X_train = X_train / 255.0
+X_test = X_test / 255.0
+
+
+model = Sequential([
+    Flatten(input_shape=(28, 28)),
+    Dense(10, activation='softmax')
+])
+
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=10,
+    batch_size=32,
+    validation_split=0.2
+)
+
+
+loss, accuracy = model.evaluate(X_test, y_test)
+
+print("\nTest Accuracy:", accuracy)
+
+plt.figure(figsize=(10,4))
+
+plt.subplot(1,2,1)
+plt.plot(history.history['accuracy'], label='Training Accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+plt.title("Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+
+plt.subplot(1,2,2)
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title("Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+# Q3. Write a python program to implement OR gate using a single layer perceptron learning rule.
+import numpy as np
+
+
+X = np.array([
+    [0,0],
+    [0,1],
+    [1,0],
+    [1,1]
+])
+
+y = np.array([0,1,1,1])
+
+
+weights = np.zeros(2)
+bias = 0
+
+learning_rate = 0.1
+epochs = 10
+
+
+def activation(net):
+    if net >= 0:
+        return 1
+    return 0
+
+
+for epoch in range(epochs):
+    for i in range(len(X)):
+        net = np.dot(X[i], weights) + bias
+        output = activation(net)
+
+        error = y[i] - output
+
+        weights = weights + learning_rate * error * X[i]
+        bias = bias + learning_rate * error
+
+print("Final Weights:", weights)
+print("Final Bias:", bias)
+
+print("\nOR Gate Output")
+
+for i in range(len(X)):
+    net = np.dot(X[i], weights) + bias
+    prediction = activation(net)
+    print(X[i], "->", prediction)
+
+# Q4. Write a python program to implement AND gate using a single layer perceptron learning rule.
+import numpy as np
+
+
+X = np.array([
+    [0,0],
+    [0,1],
+    [1,0],
+    [1,1]
+])
+
+y = np.array([0,0,0,1])
+
+
+weights = np.zeros(2)
+bias = 0
+
+learning_rate = 0.1
+epochs = 10
+
+
+def activation(net):
+    if net >= 0:
+        return 1
+    return 0
+
+
+for epoch in range(epochs):
+    for i in range(len(X)):
+        net = np.dot(X[i], weights) + bias
+        output = activation(net)
+
+        error = y[i] - output
+
+        weights = weights + learning_rate * error * X[i]
+        bias = bias + learning_rate * error
+
+print("Final Weights:", weights)
+print("Final Bias:", bias)
+
+print("\nAND Gate Output")
+
+for i in range(len(X)):
+    net = np.dot(X[i], weights) + bias
+    prediction = activation(net)
+    print(X[i], "->", prediction)
+
+# Set B - Q1. Write a python program to implement and plot the given activation functions of neural networks: Hard Tanh, Leaky ReLU and ELU.
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-10, 10, 200)
+
+hard_tanh = np.clip(x, -1, 1)
+
+alpha = 0.01
+leaky_relu = np.where(x >= 0, x, alpha * x)
+
+alpha = 1.0
+elu = np.where(x >= 0, x, alpha * (np.exp(x) - 1))
+
+
+a = 0.25
+prelu = np.where(x >= 0, x, a * x)
+
+
+plt.figure(figsize=(12,8))
+
+plt.subplot(2,2,1)
+plt.plot(x, hard_tanh, color='blue')
+plt.title("Hard Tanh")
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.grid(True)
+
+plt.subplot(2,2,2)
+plt.plot(x, leaky_relu, color='green')
+plt.title("Leaky ReLU")
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.grid(True)
+
+plt.subplot(2,2,3)
+plt.plot(x, elu, color='red')
+plt.title("ELU")
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.grid(True)
+
+plt.subplot(2,2,4)
+plt.plot(x, prelu, color='purple')
+plt.title("Parametric ReLU (PReLU)")
+plt.xlabel("Input")
+plt.ylabel("Output")
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
+
+# Set B - Q2. Write a python program to implement a NAND gate using a single layer perceptron learning rule.
+import numpy as np
+
+
+X = np.array([
+    [0,0],
+    [0,1],
+    [1,0],
+    [1,1]
+])
+
+y = np.array([1,1,1,0])
+
+
+weights = np.zeros(2)
+bias = 0
+
+learning_rate = 0.1
+epochs = 10
+
+
+def activation(net):
+    if net >= 0:
+        return 1
+    return 0
+
+
+for epoch in range(epochs):
+    for i in range(len(X)):
+        net = np.dot(X[i], weights) + bias
+        output = activation(net)
+
+        error = y[i] - output
+
+        weights = weights + learning_rate * error * X[i]
+        bias = bias + learning_rate * error
+
+print("Final Weights:", weights)
+print("Final Bias:", bias)
+
+print("\nNAND Gate Output")
+
+for i in range(len(X)):
+    net = np.dot(X[i], weights) + bias
+    prediction = activation(net)
+    print(X[i], "->", prediction)

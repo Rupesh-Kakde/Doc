@@ -1,0 +1,1017 @@
+# Q1. Write a python program to create a Convolutional Base using CIFAR10 dataset and display the summary of the model. (Use ReLU activation Function).
+
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
+
+
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+print("Training Data Shape:", X_train.shape)
+print("Testing Data Shape :", X_test.shape)
+
+
+X_train = X_train.astype("float32") / 255.0
+X_test = X_test.astype("float32") / 255.0
+
+model = Sequential([
+
+
+    Input(shape=(32, 32, 3)),
+
+
+    Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        activation="relu",
+        padding="same"
+    ),
+
+
+    MaxPooling2D(
+        pool_size=(2, 2)
+    ),
+
+
+    Conv2D(
+        filters=64,
+        kernel_size=(3, 3),
+        activation="relu",
+        padding="same"
+    ),
+
+
+    MaxPooling2D(
+        pool_size=(2, 2)
+    )
+])
+
+
+
+
+print("\n====================================")
+print("CIFAR-10 CONVOLUTIONAL BASE")
+print("====================================")
+
+model.summary()
+
+# Q2. Write a python program to add the dense layers on the top of the above created model and display the summary, evaluate the accuracy of the model.
+
+# Q3. Write a python program to implement a Handwritten Digit Recognition system using CNN. (Use MNIST Dataset).
+
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
+
+
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
+
+print("Training Data Shape:", X_train.shape)
+print("Testing Data Shape :", X_test.shape)
+
+
+X_train = X_train.astype("float32") / 255.0
+X_test = X_test.astype("float32") / 255.0
+
+
+input_height = 32
+input_width = 32
+channels = 3
+
+filters1 = 32
+filters2 = 64
+
+kernel_size = (3, 3)
+pool_size = (2, 2)
+
+dense_neurons = 64
+number_of_classes = 10
+
+epochs = 10
+batch_size = 64
+
+model = Sequential([
+
+
+    Input(shape=(input_height, input_width, channels)),
+
+
+    Conv2D(
+        filters=filters1,
+        kernel_size=kernel_size,
+        activation="relu",
+        padding="same"
+    ),
+
+    MaxPooling2D(
+        pool_size=pool_size
+    ),
+
+    Conv2D(
+        filters=filters2,
+        kernel_size=kernel_size,
+        activation="relu",
+        padding="same"
+    ),
+
+    MaxPooling2D(
+        pool_size=pool_size
+    ),
+
+
+    Flatten(),
+
+    Dense(
+        dense_neurons,
+        activation="relu"
+    ),
+
+    Dense(
+        number_of_classes,
+        activation="softmax"
+    )
+])
+
+
+
+
+print("\n====================================")
+print("CIFAR-10 CNN MODEL")
+print("====================================")
+
+model.summary()
+
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=epochs,
+    batch_size=batch_size,
+    validation_split=0.1,
+    verbose=1
+)
+
+
+test_loss, test_accuracy = model.evaluate(
+    X_test,
+    y_test,
+    verbose=0
+)
+
+
+print("\n====================================")
+print("MODEL EVALUATION")
+print("====================================")
+
+print("Test Loss     :", test_loss)
+print("Test Accuracy :", test_accuracy * 100, "%")
+
+# Q4. Consider any image of .jpeg format and apply the convolution layer, activation layer and pooling layer operation to extract the inside feature. Visualize the outputs of all layers.
+# Dataset/File: Download or add any .jpeg image file before running this code.
+
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+print("Training Data Shape:", X_train.shape)
+print("Testing Data Shape :", X_test.shape)
+
+
+
+
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test = X_test.reshape(-1, 28, 28, 1)
+
+
+
+X_train = X_train.astype("float32") / 255.0
+X_test = X_test.astype("float32") / 255.0
+
+
+
+model = tf.keras.Sequential([
+
+
+    tf.keras.layers.Input(shape=(28, 28, 1)),
+
+
+    tf.keras.layers.Conv2D(
+        filters=32,
+        kernel_size=(3, 3),
+        activation="relu"
+    ),
+
+
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2)
+    ),
+
+    tf.keras.layers.Conv2D(
+        filters=64,
+        kernel_size=(3, 3),
+        activation="relu"
+    ),
+
+
+    tf.keras.layers.MaxPooling2D(
+        pool_size=(2, 2)
+    ),
+
+
+    tf.keras.layers.Flatten(),
+
+
+    tf.keras.layers.Dense(
+        128,
+        activation="relu"
+    ),
+
+
+    tf.keras.layers.Dense(
+        10,
+        activation="softmax"
+    )
+])
+
+
+
+print("\n====================================")
+print("CNN MODEL SUMMARY")
+print("====================================")
+
+model.summary()
+
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=10,
+    batch_size=64,
+    validation_split=0.1
+)
+
+test_loss, test_accuracy = model.evaluate(
+    X_test,
+    y_test,
+    verbose=0
+)
+
+
+print("\n====================================")
+print("HANDWRITTEN DIGIT RECOGNITION")
+print("====================================")
+
+print("Test Loss     :", test_loss)
+print("Test Accuracy :", test_accuracy * 100, "%")
+
+
+number_of_images = 10
+
+predictions = model.predict(
+    X_test[:number_of_images],
+    verbose=0
+)
+
+
+print("\nPredictions:")
+print("--------------------------------")
+
+for i in range(number_of_images):
+
+    predicted_digit = np.argmax(predictions[i])
+
+    print(
+        f"Image {i + 1}: "
+        f"Actual = {y_test[i]}, "
+        f"Predicted = {predicted_digit}"
+    )
+
+plt.figure(figsize=(12, 6))
+
+for i in range(number_of_images):
+
+    predicted_digit = np.argmax(predictions[i])
+
+    plt.subplot(2, 5, i + 1)
+
+    plt.imshow(
+        X_test[i].reshape(28, 28),
+        cmap="gray"
+    )
+
+    plt.title(
+        f"Actual: {y_test[i]}\n"
+        f"Predicted: {predicted_digit}"
+    )
+
+    plt.axis("off")
+
+
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    history.history["accuracy"],
+    label="Training Accuracy"
+)
+
+plt.plot(
+    history.history["val_accuracy"],
+    label="Validation Accuracy"
+)
+
+plt.title("CNN Training and Validation Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+# Set B - Q1. Create a convolutional base using Fashion-MNIST dataset. (Use Leaky ReLU activation function while importing the necessary modules). Add the dense layers (Use Softmax activation function) and display the summary of the model. Evaluate the test set and plot Training and Validation accuracy and Training and Validation loss.
+
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+from google.colab import files
+
+
+uploaded = files.upload()
+
+image_path = list(uploaded.keys())[0]
+
+print("Uploaded Image:", image_path)
+
+
+
+image = tf.keras.utils.load_img(
+    image_path,
+    target_size=(128, 128),
+    color_mode="grayscale"
+)
+
+image_array = tf.keras.utils.img_to_array(image)
+
+image_array = np.expand_dims(
+    image_array,
+    axis=0
+)
+
+image_array = image_array / 255.0
+
+
+
+
+filter1 = np.array([
+    [-1, -1, -1],
+    [ 0,  0,  0],
+    [ 1,  1,  1]
+], dtype=np.float32)
+
+filter2 = np.array([
+    [-1,  0,  1],
+    [-1,  0,  1],
+    [-1,  0,  1]
+], dtype=np.float32)
+
+filter3 = np.array([
+    [1, 1, 1],
+    [1, 1, 1],
+    [1, 1, 1]
+], dtype=np.float32) / 9.0
+
+filter4 = np.array([
+    [-1, -2, -1],
+    [ 0,  0,  0],
+    [ 1,  2,  1]
+], dtype=np.float32)
+
+filter5 = np.array([
+    [-1,  0,  1],
+    [-2,  0,  2],
+    [-1,  0,  1]
+], dtype=np.float32)
+
+filter6 = np.array([
+    [ 0, -1,  0],
+    [-1,  4, -1],
+    [ 0, -1,  0]
+], dtype=np.float32)
+
+
+filters1 = np.stack([
+    filter1,
+    filter2,
+    filter3,
+    filter4,
+    filter5,
+    filter6
+], axis=-1)
+
+
+
+
+conv1 = tf.keras.layers.Conv2D(
+    filters=6,
+    kernel_size=(3, 3),
+    padding="same",
+    use_bias=False
+)
+
+
+conv1.build((None, 128, 128, 1))
+
+conv1.set_weights([
+    filters1.reshape(3, 3, 1, 6)
+])
+
+conv1_output = conv1(image_array)
+
+
+
+
+relu1 = tf.keras.layers.ReLU()
+
+relu1_output = relu1(conv1_output)
+
+
+
+
+filter7 = np.array([
+    [ 1,  0, -1],
+    [ 1,  0, -1],
+    [ 1,  0, -1]
+], dtype=np.float32)
+
+filter8 = np.array([
+    [ 1,  1,  1],
+    [ 0,  0,  0],
+    [-1, -1, -1]
+], dtype=np.float32)
+
+filter9 = np.array([
+    [ 0, -1,  0],
+    [-1,  5, -1],
+    [ 0, -1,  0]
+], dtype=np.float32)
+
+filter10 = np.array([
+    [ 0,  1,  0],
+    [ 1, -4,  1],
+    [ 0,  1,  0]
+], dtype=np.float32)
+
+filter11 = np.array([
+    [-1, -1,  0],
+    [-1,  0,  1],
+    [ 0,  1,  1]
+], dtype=np.float32)
+
+filter12 = np.array([
+    [1, 0, 1],
+    [0, 1, 0],
+    [1, 0, 1]
+], dtype=np.float32)
+
+
+filters2 = np.stack([
+    filter7,
+    filter8,
+    filter9,
+    filter10,
+    filter11,
+    filter12
+], axis=-1)
+
+
+
+
+conv2 = tf.keras.layers.Conv2D(
+    filters=6,
+    kernel_size=(3, 3),
+    padding="same",
+    use_bias=False
+)
+
+
+conv2.build((None, 128, 128, 6))
+
+
+
+
+conv2_weights = np.zeros(
+    (3, 3, 6, 6),
+    dtype=np.float32
+)
+
+
+for output_filter in range(6):
+
+    for input_channel in range(6):
+
+        conv2_weights[
+            :, :,
+            input_channel,
+            output_filter
+        ] = filters2[:, :, output_filter]
+
+
+conv2.set_weights([
+    conv2_weights
+])
+
+conv2_output = conv2(relu1_output)
+
+
+
+
+relu2 = tf.keras.layers.ReLU()
+
+relu2_output = relu2(conv2_output)
+
+
+
+
+pool = tf.keras.layers.MaxPooling2D(
+    pool_size=(2, 2)
+)
+
+pool_output = pool(relu2_output)
+
+
+
+
+fig, axes = plt.subplots(
+    6,
+    6,
+    figsize=(18, 18)
+)
+
+
+
+for i in range(6):
+
+    axes[0, i].imshow(
+        image_array[0, :, :, 0],
+        cmap="gray"
+    )
+
+    axes[0, i].set_title(
+        f"Original Image {i + 1}"
+    )
+
+    axes[0, i].axis("off")
+
+
+
+for i in range(6):
+
+    axes[1, i].imshow(
+        conv1_output[0, :, :, i],
+        cmap="gray"
+    )
+
+    axes[1, i].set_title(
+        f"Convolution 1 - Filter {i + 1}"
+    )
+
+    axes[1, i].axis("off")
+
+
+
+for i in range(6):
+
+    axes[2, i].imshow(
+        relu1_output[0, :, :, i],
+        cmap="gray"
+    )
+
+    axes[2, i].set_title(
+        f"ReLU 1 - Filter {i + 1}"
+    )
+
+    axes[2, i].axis("off")
+
+
+
+for i in range(6):
+
+    axes[3, i].imshow(
+        conv2_output[0, :, :, i],
+        cmap="gray"
+    )
+
+    axes[3, i].set_title(
+        f"Convolution 2 - Filter {i + 1}"
+    )
+
+    axes[3, i].axis("off")
+
+
+
+for i in range(6):
+
+    axes[4, i].imshow(
+        relu2_output[0, :, :, i],
+        cmap="gray"
+    )
+
+    axes[4, i].set_title(
+        f"ReLU 2 - Filter {i + 1}"
+    )
+
+    axes[4, i].axis("off")
+
+
+
+for i in range(6):
+
+    axes[5, i].imshow(
+        pool_output[0, :, :, i],
+        cmap="gray"
+    )
+
+    axes[5, i].set_title(
+        f"Max Pooling - Filter {i + 1}"
+    )
+
+    axes[5, i].axis("off")
+
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+print("\n====================================")
+print("FIRST 6 FILTER MATRICES")
+print("====================================")
+
+for i in range(6):
+    print(f"\nFilter {i + 1}:")
+    print(filters1[:, :, i])
+
+
+print("\n====================================")
+print("SECOND 6 FILTER MATRICES")
+print("====================================")
+
+for i in range(6):
+    print(f"\nFilter {i + 1}:")
+    print(filters2[:, :, i])
+
+
+print("\n====================================")
+print("OUTPUT SHAPES")
+print("====================================")
+
+print("Original Image :", image_array.shape)
+print("Convolution 1  :", conv1_output.shape)
+print("ReLU 1         :", relu1_output.shape)
+print("Convolution 2  :", conv2_output.shape)
+print("ReLU 2         :", relu2_output.shape)
+print("Max Pooling    :", pool_output.shape)
+
+# Set B - Q2. Create, compile and train the above network again with dropout and run it for 20 epochs with a batch size of 64.
+
+import tensorflow as tf
+import numpy as np
+
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import (
+    Input,
+    Conv2D,
+    MaxPooling2D,
+    LeakyReLU
+)
+
+
+
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
+
+print("Training Data Shape:", X_train.shape)
+print("Testing Data Shape :", X_test.shape)
+
+
+
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test = X_test.reshape(-1, 28, 28, 1)
+
+
+
+X_train = X_train.astype("float32") / 255.0
+X_test = X_test.astype("float32") / 255.0
+
+
+
+input_height = 28
+input_width = 28
+channels = 1
+
+filters1 = 32
+filters2 = 64
+
+kernel_size = (3, 3)
+pool_size = (2, 2)
+
+leaky_alpha = 0.01
+
+
+model = Sequential([
+
+
+    Input(shape=(input_height, input_width, channels)),
+
+
+    Conv2D(
+        filters=filters1,
+        kernel_size=kernel_size,
+        padding="same"
+    ),
+
+    LeakyReLU(
+        negative_slope=leaky_alpha
+    ),
+
+    MaxPooling2D(
+        pool_size=pool_size
+    ),
+
+    Conv2D(
+        filters=filters2,
+        kernel_size=kernel_size,
+        padding="same"
+    ),
+
+       LeakyReLU(
+        negative_slope=leaky_alpha
+    ),
+
+
+    MaxPooling2D(
+        pool_size=pool_size
+    )
+])
+
+
+
+print("\n====================================")
+print("FASHION-MNIST CONVOLUTIONAL BASE")
+print("====================================")
+
+model.summary()
+
+# Assignment 3 - Set B - Q2
+# Train the Fashion-MNIST CNN again using Dropout
+# Epochs = 20, Batch Size = 64
+
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import (
+    Input,
+    Conv2D,
+    MaxPooling2D,
+    LeakyReLU,
+    Flatten,
+    Dense,
+    Dropout
+)
+
+
+
+(X_train, y_train), (X_test, y_test) = tf.keras.datasets.fashion_mnist.load_data()
+
+print("Training Data Shape:", X_train.shape)
+print("Testing Data Shape :", X_test.shape)
+
+
+X_train = X_train.reshape(-1, 28, 28, 1)
+X_test = X_test.reshape(-1, 28, 28, 1)
+
+
+
+
+X_train = X_train.astype("float32") / 255.0
+X_test = X_test.astype("float32") / 255.0
+
+
+
+
+filters1 = 32
+filters2 = 64
+
+kernel_size = (3, 3)
+pool_size = (2, 2)
+
+leaky_alpha = 0.01
+
+dense_neurons = 128
+number_of_classes = 10
+
+dropout_rate = 0.5
+
+epochs = 20
+batch_size = 64
+
+
+
+
+total_samples = len(X_train)
+
+validation_samples = int(total_samples * 0.10)
+
+training_samples = total_samples - validation_samples
+
+steps_per_epoch = np.ceil(
+    training_samples / batch_size
+)
+
+
+print("\n====================================")
+print("EPOCH CALCULATION")
+print("====================================")
+
+print("Total Samples           :", total_samples)
+print("Validation Split        : 10%")
+print("Validation Samples      :", validation_samples)
+print("Training Samples        :", training_samples)
+print("Batch Size              :", batch_size)
+
+print("\nFormula:")
+print("Steps per Epoch = Training Samples / Batch Size")
+
+print(
+    "Calculation:",
+    training_samples,
+    "/",
+    batch_size
+)
+
+print(
+    "Steps per Epoch =",
+    int(steps_per_epoch)
+)
+
+print("Number of Epochs =", epochs)
+
+
+
+model = Sequential([
+
+
+    Input(shape=(28, 28, 1)),
+
+
+    Conv2D(
+        filters=filters1,
+        kernel_size=kernel_size,
+        padding="same"
+    ),
+
+    LeakyReLU(
+        negative_slope=leaky_alpha
+    ),
+
+    MaxPooling2D(
+        pool_size=pool_size
+    ),
+
+    Conv2D(
+        filters=filters2,
+        kernel_size=kernel_size,
+        padding="same"
+    ),
+
+    LeakyReLU(
+        negative_slope=leaky_alpha
+    ),
+
+    MaxPooling2D(
+        pool_size=pool_size
+    ),
+
+    Flatten(),
+
+    Dense(
+        dense_neurons,
+        activation="relu"
+    ),
+
+    Dropout(
+        dropout_rate
+    ),
+
+    Dense(
+        number_of_classes,
+        activation="softmax"
+    )
+])
+
+
+
+print("\n====================================")
+print("FASHION-MNIST CNN WITH DROPOUT")
+print("====================================")
+
+model.summary()
+
+
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+history = model.fit(
+    X_train,
+    y_train,
+    epochs=epochs,
+    batch_size=batch_size,
+    validation_split=0.1,
+    verbose=1
+)
+
+
+
+test_loss, test_accuracy = model.evaluate(
+    X_test,
+    y_test,
+    verbose=0
+)
+
+
+print("\n====================================")
+print("MODEL EVALUATION")
+print("====================================")
+
+print("Test Loss     :", test_loss)
+print("Test Accuracy :", test_accuracy * 100, "%")
+
+
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    history.history["accuracy"],
+    label="Training Accuracy"
+)
+
+plt.plot(
+    history.history["val_accuracy"],
+    label="Validation Accuracy"
+)
+
+plt.title("CNN with Dropout - Accuracy")
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    history.history["loss"],
+    label="Training Loss"
+)
+
+plt.plot(
+    history.history["val_loss"],
+    label="Validation Loss"
+)
+
+plt.title("CNN with Dropout - Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.legend()
+plt.grid(True)
+
+plt.show()

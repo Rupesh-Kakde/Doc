@@ -1,0 +1,3631 @@
+# Set B - Q1. Create a Bi-directional RNN model to perform sentiment analysis and predict the sentiment for a given user sentence and also compute the model accuracy and model loss with respect to the number of epochs.
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras import models, layers
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+
+url = "https://raw.githubusercontent.com/NiteshKedia/Sentiment-Analysis/master/Word%20list%20with%20sentiment/trainingandtestdata/training.1600000.processed.noemoticon.csv"
+
+
+print("\n========== DOWNLOADING DATASET ==========")
+
+columns = [
+    "target",
+    "id",
+    "date",
+    "flag",
+    "user",
+    "text"
+]
+
+df = pd.read_csv(
+    url,
+    encoding="latin-1",
+    header=None,
+    names=columns
+)
+
+print(
+    "Original Dataset Records:",
+    len(df)
+)
+
+
+print("\n========== DATASET ==========")
+
+print(
+    df.head()
+)
+
+print(
+    "\nColumns:",
+    df.columns.tolist()
+)
+
+
+
+
+df["target"] = df["target"].replace({
+    4: 1
+})
+
+
+
+print(
+    "\n========== USING 50% DATASET =========="
+)
+
+df_50 = df.sample(
+    frac=0.50,
+    random_state=42
+).reset_index(
+    drop=True
+)
+
+print(
+    "50% Dataset Records:",
+    len(df_50)
+)
+
+print(
+    "Expected:",
+    800000
+)
+
+
+
+texts = df_50["text"].astype(
+    str
+).values
+
+labels = df_50["target"].astype(
+    "int32"
+).values
+
+
+
+print(
+    "\n========== TOKENIZATION =========="
+)
+
+vocab = 10000
+maxlen = 100
+
+tokenizer = Tokenizer(
+    num_words=vocab,
+    oov_token="<OOV>"
+)
+
+print(
+    "Fitting tokenizer..."
+)
+
+tokenizer.fit_on_texts(
+    texts
+)
+
+print(
+    "Converting text to sequences..."
+)
+
+sequences = tokenizer.texts_to_sequences(
+    texts
+)
+
+print(
+    "Padding sequences..."
+)
+
+x = pad_sequences(
+    sequences,
+    maxlen=maxlen,
+    padding="post",
+    truncating="post"
+)
+
+y = np.array(
+    labels
+)
+
+
+print(
+    "\nInput Shape:",
+    x.shape
+)
+
+print(
+    "Label Shape:",
+    y.shape
+)
+
+
+
+print(
+    "\n========== TRAIN TEST SPLIT =========="
+)
+
+x_train, x_test, y_train, y_test = train_test_split(
+    x,
+    y,
+    test_size=0.20,
+    random_state=42,
+    stratify=y
+)
+
+print(
+    "Training Samples:",
+    len(x_train)
+)
+
+print(
+    "Testing Samples:",
+    len(x_test)
+)
+
+
+
+print(
+    "\n========== MODEL CREATION =========="
+)
+
+bi_rnn = models.Sequential([
+
+    layers.Input(
+        shape=(maxlen,)
+    ),
+
+    layers.Embedding(
+        input_dim=vocab,
+        output_dim=64
+    ),
+
+    layers.Bidirectional(
+        layers.SimpleRNN(
+            32
+        )
+    ),
+
+    layers.Dense(
+        1,
+        activation="sigmoid"
+    )
+])
+
+
+
+bi_rnn.compile(
+    optimizer="adam",
+    loss="binary_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+
+print(
+    "\n========== MODEL SUMMARY =========="
+)
+
+bi_rnn.summary()
+
+
+
+print(
+    "\n========== TRAINING 50 EPOCHS =========="
+)
+
+hist_bi = bi_rnn.fit(
+    x_train,
+    y_train,
+    epochs=50,
+    batch_size=128,
+    validation_split=0.10,
+    verbose=1
+)
+
+
+
+print(
+    "\n========== TEST EVALUATION =========="
+)
+
+test_loss, test_accuracy = bi_rnn.evaluate(
+    x_test,
+    y_test,
+    verbose=0
+)
+
+
+
+print(
+    "\n========== FINAL TEST RESULTS =========="
+)
+
+print(
+    "BiRNN Accuracy:",
+    round(
+        test_accuracy * 100,
+        2
+    ),
+    "%"
+)
+
+print(
+    "BiRNN Loss:",
+    round(
+        test_loss,
+        4
+    )
+)
+
+
+
+print(
+    "\n========== LAST EPOCH RESULTS =========="
+)
+
+print(
+    "Training Loss:",
+    round(
+        hist_bi.history["loss"][-1],
+        6
+    )
+)
+
+print(
+    "Training Accuracy:",
+    round(
+        hist_bi.history["accuracy"][-1] * 100,
+        2
+    ),
+    "%"
+)
+
+print(
+    "Validation Loss:",
+    round(
+        hist_bi.history["val_loss"][-1],
+        6
+    )
+)
+
+print(
+    "Validation Accuracy:",
+    round(
+        hist_bi.history["val_accuracy"][-1] * 100,
+        2
+    ),
+    "%"
+)
+
+
+
+print(
+    "\n========== EPOCH-WISE RESULTS =========="
+)
+
+for i in range(50):
+
+    print(
+        f"Epoch {i + 1:02d}/50 | "
+        f"Loss: {hist_bi.history['loss'][i]:.6f} | "
+        f"Accuracy: {hist_bi.history['accuracy'][i]:.6f} | "
+        f"Val Loss: {hist_bi.history['val_loss'][i]:.6f} | "
+        f"Val Accuracy: {hist_bi.history['val_accuracy'][i]:.6f}"
+    )
+
+
+
+plt.figure(
+    figsize=(10, 5)
+)
+
+plt.plot(
+    range(1, 51),
+    hist_bi.history["accuracy"],
+    marker="o",
+    markersize=3,
+    label="Training Accuracy"
+)
+
+plt.plot(
+    range(1, 51),
+    hist_bi.history["val_accuracy"],
+    marker="o",
+    markersize=3,
+    label="Validation Accuracy"
+)
+
+plt.title(
+    "Bi-directional RNN Accuracy vs Epochs"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "Accuracy"
+)
+
+plt.xticks(
+    range(1, 51, 5)
+)
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(10, 5)
+)
+
+plt.plot(
+    range(1, 51),
+    hist_bi.history["loss"],
+    marker="o",
+    markersize=3,
+    label="Training Loss"
+)
+
+plt.plot(
+    range(1, 51),
+    hist_bi.history["val_loss"],
+    marker="o",
+    markersize=3,
+    label="Validation Loss"
+)
+
+plt.title(
+    "Bi-directional RNN Loss vs Epochs"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "Loss"
+)
+
+plt.xticks(
+    range(1, 51, 5)
+)
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+
+
+def predict_sentiment(sentence):
+
+
+    sequence = tokenizer.texts_to_sequences(
+        [sentence]
+    )
+
+
+
+    padded_sequence = pad_sequences(
+        sequence,
+        maxlen=maxlen,
+        padding="post",
+        truncating="post"
+    )
+
+
+
+    prediction = bi_rnn.predict(
+        padded_sequence,
+        verbose=0
+    )[0][0]
+
+    prediction = float(
+        prediction
+    )
+
+
+
+    if prediction >= 0.5:
+
+        sentiment = "Positive"
+
+    else:
+
+        sentiment = "Negative"
+
+
+
+    print(
+        "\n========== USER SENTENCE RESULT =========="
+    )
+
+    print(
+        "Sentence:",
+        sentence
+    )
+
+    print(
+        "Token Sequence:",
+        sequence[0]
+    )
+
+    print(
+        "Padded Sequence:",
+        padded_sequence[0].tolist()
+    )
+
+    print(
+        "Probability:",
+        round(
+            prediction,
+            4
+        )
+    )
+
+    print(
+        "Sentiment:",
+        sentiment
+    )
+
+
+
+print(
+    "\n========== USER SENTENCE PREDICTION =========="
+)
+
+user_sentence = input(
+    "Enter a sentence for sentiment prediction: "
+)
+
+predict_sentiment(
+    user_sentence
+)
+
+# Set B - Q2. Write a python program to recognize handwritten digits using RNN.
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import models, layers
+import matplotlib.pyplot as plt
+
+
+
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+x_train = x_train.astype("float32") / 255.0
+x_test = x_test.astype("float32") / 255.0
+
+print("Training Data Shape:", x_train.shape)
+print("Testing Data Shape :", x_test.shape)
+
+
+
+rnn_digit = models.Sequential([
+
+    layers.Input(shape=(28, 28)),
+
+    layers.SimpleRNN(
+        128,
+        activation="tanh"
+    ),
+
+    layers.Dense(
+        10,
+        activation="softmax"
+    )
+])
+
+
+
+rnn_digit.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+
+class WeightUpdate(tf.keras.callbacks.Callback):
+
+    def on_train_begin(self, logs=None):
+
+        self.old_weights = None
+        self.epoch_numbers = []
+        self.weight_changes = []
+        self.mean_changes = []
+
+
+    def on_epoch_end(self, epoch, logs=None):
+
+        new_weights = self.model.get_weights()
+
+        total_max_change = 0
+        total_mean_change = 0
+        weight_count = 0
+
+        print(
+            f"\nEpoch {epoch + 1}/20"
+            f" | Loss: {logs['loss']:.6f}"
+            f" | Accuracy: {logs['accuracy']:.6f}"
+        )
+
+
+        if self.old_weights is None:
+
+            for i, w in enumerate(new_weights):
+
+                print(
+                    f"W{i + 1} "
+                    f"Shape: {w.shape} "
+                    f"Mean: {np.mean(w):.6f} "
+                    f"Min: {np.min(w):.6f} "
+                    f"Max: {np.max(w):.6f} "
+                    f"Std: {np.std(w):.6f}"
+                )
+
+            self.weight_changes.append(0)
+            self.mean_changes.append(0)
+
+
+        else:
+
+            for i, w in enumerate(new_weights):
+
+                d = w - self.old_weights[i]
+
+                mean_change = np.mean(
+                    np.abs(d)
+                )
+
+                max_change = np.max(
+                    np.abs(d)
+                )
+
+                print(
+                    f"W{i + 1} "
+                    f"Mean: {np.mean(w):.6f} "
+                    f"Min: {np.min(w):.6f} "
+                    f"Max: {np.max(w):.6f} "
+                    f"MeanChange: {np.mean(d):.6f} "
+                    f"MaxChange: {max_change:.6f}"
+                )
+
+                total_max_change += max_change
+                total_mean_change += mean_change
+                weight_count += 1
+
+
+            self.weight_changes.append(
+                total_max_change
+            )
+
+            self.mean_changes.append(
+                total_mean_change / weight_count
+            )
+
+
+        self.epoch_numbers.append(
+            epoch + 1
+        )
+
+        self.old_weights = [
+            w.copy()
+            for w in new_weights
+        ]
+
+
+weight_callback = WeightUpdate()
+
+
+
+print("\n========== MODEL SUMMARY ==========")
+
+rnn_digit.summary()
+
+
+
+print("\n========== TRAINING ==========")
+
+history = rnn_digit.fit(
+    x_train,
+    y_train,
+    epochs=20,
+    batch_size=128,
+    verbose=0,
+    callbacks=[weight_callback]
+)
+
+
+
+loss, acc = rnn_digit.evaluate(
+    x_test,
+    y_test,
+    verbose=0
+)
+
+
+print("\n========== FINAL RESULTS ==========")
+
+print(
+    "RNN Digit Accuracy:",
+    round(acc * 100, 2),
+    "%"
+)
+
+print(
+    "RNN Digit Loss:",
+    round(loss, 4)
+)
+
+
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    range(1, 21),
+    history.history["accuracy"],
+    marker="o",
+    label="Training Accuracy"
+)
+
+plt.title(
+    "RNN Accuracy vs Epochs"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+
+plt.xticks(range(1, 21))
+
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    range(1, 21),
+    history.history["loss"],
+    marker="o",
+    label="Training Loss"
+)
+
+plt.title(
+    "RNN Loss vs Epochs"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+
+plt.xticks(range(1, 21))
+
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+
+plt.figure(figsize=(8, 5))
+
+plt.plot(
+    weight_callback.epoch_numbers,
+    weight_callback.weight_changes,
+    marker="o",
+    label="Maximum Weight Change"
+)
+
+plt.plot(
+    weight_callback.epoch_numbers,
+    weight_callback.mean_changes,
+    marker="o",
+    label="Average Weight Change"
+)
+
+plt.title(
+    "Weight Updation vs Epochs"
+)
+
+plt.xlabel("Epoch")
+plt.ylabel("Weight Change")
+
+plt.xticks(range(1, 21))
+
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+
+pred = rnn_digit.predict(
+    x_test[:5],
+    verbose=0
+)
+
+
+print("\n========== SAMPLE PREDICTIONS ==========")
+
+for i in range(5):
+
+    predicted_digit = np.argmax(
+        pred[i]
+    )
+
+    print(
+        f"Image {i + 1}: "
+        f"Actual = {y_test[i]}, "
+        f"Predicted = {predicted_digit}"
+    )
+
+
+
+fig, axes = plt.subplots(
+    1,
+    5,
+    figsize=(10, 2)
+)
+
+
+for i, ax in enumerate(axes):
+
+    ax.imshow(
+        x_test[i],
+        cmap="gray"
+    )
+
+    ax.set_title(
+        f"A:{y_test[i]} P:{pred[i].argmax()}"
+    )
+
+    ax.axis("off")
+
+
+plt.tight_layout()
+plt.show()
+
+# Q1. Create a simple RNN model for generating data using text and predict the text using a pre-trained model. (Use ReLU and Softmax activation function). (Use shakespeare.txt file.)
+# Dataset/File: Download or add the shakespeare.txt file before running this code.
+from google.colab import files
+
+uploaded = files.upload()
+
+file_path = "shakespeare.txt"
+
+# Q1. Create a simple RNN model for generating data using text and predict the text using a pre-trained model. (Use ReLU and Softmax activation function). (Use shakespeare.txt file.)
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Embedding, SimpleRNN, Dense
+
+
+FILE_NAME = "shakespeare.txt"
+
+with open(FILE_NAME, "r", encoding="utf-8") as file:
+    text = file.read()
+
+print("========== DATA INFORMATION ==========")
+print("Total characters:", len(text))
+print("\nFirst 300 characters:")
+print(text[:300])
+
+if len(text) < 100:
+    raise ValueError("shakespeare.txt is too small or empty.")
+
+
+chars = sorted(set(text))
+
+char_to_int = {char: i for i, char in enumerate(chars)}
+int_to_char = {i: char for i, char in enumerate(chars)}
+
+vocab_size = len(chars)
+
+print("\nVocabulary size:", vocab_size)
+
+
+sequence_length = 40
+
+X = []
+y = []
+
+for i in range(len(text) - sequence_length):
+
+    input_sequence = text[i:i + sequence_length]
+
+    target_character = text[i + sequence_length]
+
+    X.append([
+        char_to_int[character]
+        for character in input_sequence
+    ])
+
+    y.append(char_to_int[target_character])
+
+X = np.array(X)
+y = np.array(y)
+
+print("\n========== SEQUENCE INFORMATION ==========")
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+
+
+model = Sequential([
+
+    Embedding(
+        input_dim=vocab_size,
+        output_dim=64
+    ),
+
+    SimpleRNN(
+        128,
+        activation="relu"
+    ),
+
+    Dense(
+        vocab_size,
+        activation="softmax"
+    )
+])
+
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+print("\n========== MODEL ==========")
+model.summary()
+
+
+print("\n========== TRAINING ==========")
+
+history = model.fit(
+    X,
+    y,
+    epochs=20,
+    batch_size=128,
+    validation_split=0.1
+)
+
+
+def predict_next_character(input_text):
+
+    if len(input_text) < sequence_length:
+        input_text = input_text.rjust(sequence_length)
+
+    else:
+        input_text = input_text[-sequence_length:]
+
+    input_numbers = [
+        char_to_int.get(character, 0)
+        for character in input_text
+    ]
+
+    input_array = np.array([input_numbers])
+
+    probabilities = model.predict(
+        input_array,
+        verbose=0
+    )[0]
+
+    predicted_index = np.argmax(probabilities)
+
+    predicted_character = int_to_char[predicted_index]
+
+    confidence = probabilities[predicted_index]
+
+    return input_text, predicted_character, confidence
+
+
+
+print("\n========== NEXT CHARACTER PREDICTION ==========")
+
+user_input = input(
+    "Enter a sequence for next-character prediction: "
+)
+
+input_text, predicted_character, confidence = \
+    predict_next_character(user_input)
+
+print("\nInput Sequence:")
+print(repr(input_text))
+
+print("\nPredicted Next Character:")
+print(repr(predicted_character))
+
+print("\nConfidence:")
+print(round(float(confidence), 4))
+
+
+
+def generate_text(start_text, number_of_characters=200):
+
+    generated_text = start_text
+
+    for _ in range(number_of_characters):
+
+        current_sequence = generated_text[-sequence_length:]
+
+        if len(current_sequence) < sequence_length:
+            current_sequence = current_sequence.rjust(
+                sequence_length
+            )
+
+        input_numbers = [
+            char_to_int.get(character, 0)
+            for character in current_sequence
+        ]
+
+        input_array = np.array([input_numbers])
+
+        probabilities = model.predict(
+            input_array,
+            verbose=0
+        )[0]
+
+        predicted_index = np.argmax(probabilities)
+
+        predicted_character = int_to_char[predicted_index]
+
+        generated_text += predicted_character
+
+    return generated_text
+
+
+
+print("\n========== TEXT GENERATION ==========")
+
+starting_text = input(
+    "Enter starting text: "
+)
+
+result = generate_text(
+    starting_text,
+    number_of_characters=200
+)
+
+print("\nGenerated Text:")
+print(result)
+
+
+
+print("\n========== ACTUAL VS PREDICTED ==========")
+
+test_position = 1000
+
+test_sequence = text[
+    test_position:test_position + sequence_length
+]
+
+actual_next_character = text[
+    test_position + sequence_length
+]
+
+test_numbers = [
+    char_to_int[character]
+    for character in test_sequence
+]
+
+test_array = np.array([test_numbers])
+
+probabilities = model.predict(
+    test_array,
+    verbose=0
+)[0]
+
+predicted_index = np.argmax(probabilities)
+
+predicted_next_character = int_to_char[
+    predicted_index
+]
+
+confidence = probabilities[predicted_index]
+
+print("Input Sequence:")
+print(repr(test_sequence))
+
+print("\nActual Next Character:")
+print(repr(actual_next_character))
+
+print("\nPredicted Next Character:")
+print(repr(predicted_next_character))
+
+print("\nConfidence:")
+print(round(float(confidence), 4))
+
+# Q2. Write a python program to implement time series forecasting in Recurrent Neural network using LSTM module. (Use monthly_milk_production.csv.)
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+
+print("=" * 70)
+print("       TIME SERIES FORECASTING USING LSTM")
+print("          MONTHLY MILK PRODUCTION")
+print("=" * 70)
+
+
+
+print("\nSTEP 1: DOWNLOADING DATASET FROM INTERNET")
+print("-" * 70)
+
+url = "https://raw.githubusercontent.com/plotly/datasets/master/monthly-milk-production-pounds.csv"
+
+data = pd.read_csv(url)
+
+print("Dataset downloaded successfully!")
+
+print("\nFirst 5 records:")
+print(data.head())
+
+print("\nDataset shape:")
+print(data.shape)
+
+print("\nColumn names:")
+print(data.columns.tolist())
+
+
+
+print("\nSTEP 2: SELECTING DATE AND MILK PRODUCTION")
+print("-" * 70)
+
+date_column = data.columns[0]
+production_column = data.columns[1]
+
+print("Date column       :", date_column)
+print("Production column :", production_column)
+
+data[date_column] = pd.to_datetime(
+    data[date_column],
+    errors="coerce"
+)
+
+data[production_column] = pd.to_numeric(
+    data[production_column],
+    errors="coerce"
+)
+
+data = data.dropna(
+    subset=[date_column, production_column]
+)
+
+data = data.sort_values(
+    date_column
+).reset_index(drop=True)
+
+dates = data[date_column].copy()
+
+values = data[production_column].values.astype(
+    "float32"
+)
+
+print("\nNumber of records:", len(values))
+
+print("\nStarting month:")
+print(dates.iloc[0])
+
+print("\nEnding month:")
+print(dates.iloc[-1])
+
+
+
+print("\nSTEP 3: DATA EXPLORATION")
+print("-" * 70)
+
+print("\nFirst 5 records:")
+print(data.head())
+
+print("\nLast 5 records:")
+print(data.tail())
+
+print("\nDataset information:")
+data.info()
+
+print("\nStatistical description:")
+print(data[production_column].describe())
+
+print("\nMissing values:")
+print(data.isnull().sum())
+
+
+
+print("\nSTEP 4: VISUALIZING ORIGINAL MILK PRODUCTION")
+print("-" * 70)
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(
+    dates,
+    values,
+    label="Milk Production"
+)
+
+plt.xlabel("Month")
+plt.ylabel("Milk Production")
+plt.title("Monthly Milk Production")
+
+plt.legend()
+plt.grid(True)
+
+plt.xticks(rotation=45)
+
+plt.tight_layout()
+
+plt.show()
+
+
+
+print("\nSTEP 5: NORMALIZING DATA")
+print("-" * 70)
+
+minimum = values.min()
+maximum = values.max()
+
+values_normalized = (
+    (values - minimum)
+    / (maximum - minimum)
+)
+
+print("Minimum production :", minimum)
+print("Maximum production :", maximum)
+
+print("\nFirst 10 normalized values:")
+
+print(
+    values_normalized[:10]
+)
+
+print("\nData normalized between 0 and 1.")
+
+
+
+print("\nSTEP 6: CREATING TIME SERIES SEQUENCES")
+print("-" * 70)
+
+
+time_steps = 12
+
+X = []
+y = []
+sequence_dates = []
+
+for i in range(
+    len(values_normalized) - time_steps
+):
+
+    X.append(
+        values_normalized[
+            i:i + time_steps
+        ]
+    )
+
+    y.append(
+        values_normalized[
+            i + time_steps
+        ]
+    )
+
+    sequence_dates.append(
+        dates.iloc[
+            i + time_steps
+        ]
+    )
+
+X = np.array(X)
+y = np.array(y)
+
+sequence_dates = pd.Series(
+    sequence_dates
+).reset_index(drop=True)
+
+print(
+    "Input shape before reshaping:",
+    X.shape
+)
+
+print(
+    "Target shape:",
+    y.shape
+)
+
+print(
+    "\nTime steps:",
+    time_steps
+)
+
+print(
+    "Meaning: previous 12 months are used",
+    "to predict the next month."
+)
+
+
+
+print("\nSTEP 7: RESHAPING DATA FOR LSTM")
+print("-" * 70)
+
+X = X.reshape(
+    X.shape[0],
+    X.shape[1],
+    1
+)
+
+print(
+    "LSTM input shape:",
+    X.shape
+)
+
+print(
+    "\nExpected format:"
+)
+
+print(
+    "(samples, time steps, features)"
+)
+
+
+
+print("\nSTEP 8: SPLITTING DATA")
+print("-" * 70)
+
+
+train_size = int(
+    len(X) * 0.80
+)
+
+X_train = X[:train_size]
+X_test = X[train_size:]
+
+y_train = y[:train_size]
+y_test = y[train_size:]
+
+test_dates = sequence_dates.iloc[
+    train_size:
+].reset_index(drop=True)
+
+print(
+    "Total samples     :",
+    len(X)
+)
+
+print(
+    "Training samples  :",
+    len(X_train)
+)
+
+print(
+    "Testing samples   :",
+    len(X_test)
+)
+
+print(
+    "\nTraining percentage: 80%"
+)
+
+print(
+    "Testing percentage : 20%"
+)
+
+
+
+print("\nSTEP 9: CREATING LSTM MODEL")
+print("-" * 70)
+
+model = tf.keras.Sequential([
+
+    tf.keras.layers.Input(
+        shape=(time_steps, 1)
+    ),
+
+    tf.keras.layers.LSTM(
+        50
+    ),
+
+    tf.keras.layers.Dense(
+        1
+    )
+])
+
+print(
+    "LSTM model created successfully."
+)
+
+
+
+print("\nSTEP 10: MODEL SUMMARY")
+print("-" * 70)
+
+model.summary()
+
+
+
+print("\nSTEP 11: COMPILING MODEL")
+print("-" * 70)
+
+model.compile(
+    optimizer="adam",
+    loss="mean_squared_error"
+)
+
+print(
+    "Optimizer : Adam"
+)
+
+print(
+    "Loss      : Mean Squared Error"
+)
+
+print(
+    "Model compiled successfully."
+)
+
+
+
+print("\nSTEP 12: TRAINING LSTM MODEL")
+print("-" * 70)
+
+history = model.fit(
+    X_train,
+    y_train,
+
+    epochs=15,
+
+    batch_size=16,
+
+    validation_data=(
+        X_test,
+        y_test
+    ),
+
+    verbose=1
+)
+
+print(
+    "\nLSTM training completed successfully."
+)
+
+
+
+print("\nSTEP 13: EVALUATING MODEL")
+print("-" * 70)
+
+test_loss = model.evaluate(
+    X_test,
+    y_test,
+    verbose=0
+)
+
+print(
+    "Test Loss:",
+    test_loss
+)
+
+
+
+print("\nSTEP 14: MAKING TEST PREDICTIONS")
+print("-" * 70)
+
+predicted_normalized = model.predict(
+    X_test,
+    verbose=0
+)
+
+predicted_normalized = (
+    predicted_normalized.flatten()
+)
+
+print(
+    "Predictions generated successfully."
+)
+
+print(
+    "Number of predictions:",
+    len(predicted_normalized)
+)
+
+
+
+print("\nSTEP 15: CONVERTING PREDICTIONS TO ORIGINAL SCALE")
+print("-" * 70)
+
+predicted = (
+    predicted_normalized
+    * (maximum - minimum)
+    + minimum
+)
+
+actual = (
+    y_test
+    * (maximum - minimum)
+    + minimum
+)
+
+print(
+    "Predictions converted successfully."
+)
+
+
+
+print("\nSTEP 16: CALCULATING MODEL PERFORMANCE")
+print("-" * 70)
+
+rmse = np.sqrt(
+    mean_squared_error(
+        actual,
+        predicted
+    )
+)
+
+mae = mean_absolute_error(
+    actual,
+    predicted
+)
+
+print(
+    "RMSE:",
+    round(rmse, 4)
+)
+
+print(
+    "MAE :",
+    round(mae, 4)
+)
+
+print(
+    "\nRMSE = Root Mean Squared Error"
+)
+
+print(
+    "MAE  = Mean Absolute Error"
+)
+
+
+
+print("\nSTEP 17: MONTH-WISE PREDICTIONS")
+print("-" * 70)
+
+results = pd.DataFrame({
+
+    "Month": test_dates,
+
+    "Actual Production": actual,
+
+    "Predicted Production": predicted
+
+})
+
+results["Difference"] = (
+    results["Actual Production"]
+    - results["Predicted Production"]
+)
+
+results["Percentage Error"] = (
+    np.abs(
+        results["Difference"]
+    )
+    /
+    results["Actual Production"]
+) * 100
+
+
+print(
+    "\nMONTH-WISE PREDICTIONS:\n"
+)
+
+print(
+    results.to_string(
+        index=False,
+
+        formatters={
+
+            "Actual Production":
+                "{:.2f}".format,
+
+            "Predicted Production":
+                "{:.2f}".format,
+
+            "Difference":
+                "{:.2f}".format,
+
+            "Percentage Error":
+                "{:.2f}%".format
+        }
+    )
+)
+
+
+
+print("\nSTEP 18: SAVING MONTHLY PREDICTIONS")
+print("-" * 70)
+
+results.to_csv(
+    "/content/monthly_milk_predictions.csv",
+    index=False
+)
+
+print(
+    "Prediction file saved successfully."
+)
+
+print(
+    "File: /content/monthly_milk_predictions.csv"
+)
+
+
+
+print("\nSTEP 19: ACTUAL VS PREDICTED GRAPH")
+print("-" * 70)
+
+plt.figure(figsize=(13, 5))
+
+plt.plot(
+    test_dates,
+    actual,
+    label="Actual Production"
+)
+
+plt.plot(
+    test_dates,
+    predicted,
+    label="Predicted Production"
+)
+
+plt.xlabel("Month")
+
+plt.ylabel(
+    "Milk Production"
+)
+
+plt.title(
+    "Monthly Milk Production - Actual vs Predicted"
+)
+
+plt.legend()
+
+plt.grid(True)
+
+plt.xticks(
+    rotation=45
+)
+
+plt.tight_layout()
+
+plt.show()
+
+
+
+print("\nSTEP 20: TRAINING AND VALIDATION LOSS")
+print("-" * 70)
+
+plt.figure(figsize=(8, 4))
+
+plt.plot(
+    history.history["loss"],
+    label="Training Loss"
+)
+
+plt.plot(
+    history.history["val_loss"],
+    label="Validation Loss"
+)
+
+plt.xlabel("Epoch")
+
+plt.ylabel("Loss")
+
+plt.title(
+    "LSTM Training and Validation Loss"
+)
+
+plt.legend()
+
+plt.grid(True)
+
+plt.show()
+
+
+
+print("\n" + "=" * 70)
+print("STEP 21: PREDICTING NEXT 12 MONTHS")
+print("=" * 70)
+
+current_sequence = (
+    values_normalized[-time_steps:].copy()
+)
+
+future_predictions_normalized = []
+
+future_dates = []
+
+last_date = dates.iloc[-1]
+
+
+for i in range(12):
+
+    input_sequence = (
+        current_sequence.reshape(
+            1,
+            time_steps,
+            1
+        )
+    )
+
+    next_prediction = model.predict(
+        input_sequence,
+        verbose=0
+    )[0][0]
+
+    future_predictions_normalized.append(
+        next_prediction
+    )
+
+    current_sequence = np.append(
+        current_sequence[1:],
+        next_prediction
+    )
+
+    next_month = (
+        last_date
+        + pd.DateOffset(
+            months=i + 1
+        )
+    )
+
+    future_dates.append(
+        next_month
+    )
+
+
+
+print("\nSTEP 22: CONVERTING FUTURE PREDICTIONS")
+print("-" * 70)
+
+future_predictions = (
+    np.array(
+        future_predictions_normalized
+    )
+    * (maximum - minimum)
+    + minimum
+)
+
+print(
+    "Future predictions converted successfully."
+)
+
+
+
+print("\nSTEP 23: NEXT 12 MONTHS FORECAST")
+print("-" * 70)
+
+future_results = pd.DataFrame({
+
+    "Month": future_dates,
+
+    "Predicted Milk Production":
+        future_predictions
+
+})
+
+print(
+    "\nNext 12 months predicted production:\n"
+)
+
+print(
+    future_results.to_string(
+        index=False,
+
+        formatters={
+            "Predicted Milk Production":
+                "{:.2f}".format
+        }
+    )
+)
+
+
+
+print("\nSTEP 24: SAVING FUTURE FORECAST")
+print("-" * 70)
+
+future_results.to_csv(
+    "/content/future_milk_production_forecast.csv",
+    index=False
+)
+
+print(
+    "Future forecast saved successfully."
+)
+
+print(
+    "File: /content/future_milk_production_forecast.csv"
+)
+
+
+
+print("\nSTEP 25: FUTURE 12 MONTH FORECAST GRAPH")
+print("-" * 70)
+
+plt.figure(figsize=(13, 5))
+
+recent_dates = dates.iloc[-24:]
+
+recent_values = values[-24:]
+
+
+plt.plot(
+    recent_dates,
+    recent_values,
+    label="Historical Production"
+)
+
+
+plt.plot(
+    future_dates,
+    future_predictions,
+    marker="o",
+    label="Next 12 Months Prediction"
+)
+
+
+plt.xlabel("Month")
+
+plt.ylabel(
+    "Milk Production"
+)
+
+plt.title(
+    "Next 12 Months Milk Production Forecast"
+)
+
+plt.legend()
+
+plt.grid(True)
+
+plt.xticks(
+    rotation=45
+)
+
+plt.tight_layout()
+
+plt.show()
+
+
+
+print("\n" + "=" * 70)
+print("                  FINAL RESULT")
+print("=" * 70)
+
+print("\nDataset:")
+print("  Total records :", len(values))
+
+print("\nModel:")
+print("  LSTM")
+print("  Time steps :", time_steps)
+print("  LSTM units :", 50)
+print("  Epochs     :", 20)
+print("  Batch size :", 16)
+
+print("\nPerformance:")
+print(
+    "  RMSE:",
+    round(rmse, 4)
+)
+
+print(
+    "  MAE :",
+    round(mae, 4)
+)
+
+print("\nForecast:")
+print(
+    "  Next 12 months predicted successfully."
+)
+
+print("\nFiles generated:")
+
+print(
+    "  1. /content/monthly_milk_predictions.csv"
+)
+
+print(
+    "  2. /content/future_milk_production_forecast.csv"
+)
+
+print("\n" + "=" * 70)
+print("       TIME SERIES FORECASTING COMPLETED")
+print("=" * 70)
+
+# Q3. Write a python program to predict a stock price from a mastercard stock dataset using LSTM and GRU models.
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import matplotlib.pyplot as plt
+
+
+
+url = "https://raw.githubusercontent.com/plotly/datasets/master/finance-charts-apple.csv"
+
+df = pd.read_csv(url)
+
+print("\n========== DATASET ==========")
+
+print(df.head())
+
+print(
+    "Columns:",
+    df.columns.tolist()
+)
+
+
+
+close = df[
+    "AAPL.Close"
+].values.astype(
+    "float32"
+).reshape(-1, 1)
+
+print(
+    "\nData Shape:",
+    close.shape
+)
+
+
+
+scaler = MinMaxScaler()
+
+close_scaled = scaler.fit_transform(
+    close
+)
+
+
+
+def make_stock(
+    arr,
+    n=30
+):
+
+    X = []
+    y = []
+
+    for i in range(
+        len(arr) - n
+    ):
+
+        X.append(
+            arr[i:i+n]
+        )
+
+        y.append(
+            arr[i+n]
+        )
+
+    return (
+        np.array(X),
+        np.array(y)
+    )
+
+
+X, y = make_stock(
+    close_scaled,
+    30
+)
+
+
+
+split = int(
+    len(X) * 0.80
+)
+
+X_train = X[:split]
+X_test = X[split:]
+
+y_train = y[:split]
+y_test = y[split:]
+
+
+print("\n========== DATA SPLIT ==========")
+
+print(
+    "Total Data:",
+    close.shape
+)
+
+print(
+    "X Train:",
+    X_train.shape
+)
+
+print(
+    "X Test:",
+    X_test.shape
+)
+
+print(
+    "Y Train:",
+    y_train.shape
+)
+
+print(
+    "Y Test:",
+    y_test.shape
+)
+
+
+
+class WeightUpdate(
+    tf.keras.callbacks.Callback
+):
+
+    def on_train_begin(
+        self,
+        logs=None
+    ):
+
+        self.old = None
+
+
+    def on_epoch_end(
+        self,
+        epoch,
+        logs=None
+    ):
+
+        new = self.model.get_weights()
+
+        print(
+            f"\nEpoch {epoch + 1}/15 | "
+            f"Loss:{logs['loss']:.6f}"
+        )
+
+        for i, w in enumerate(new):
+
+            if self.old is None:
+
+                print(
+                    f"W{i + 1} "
+                    f"Shape:{w.shape} "
+                    f"Mean:{np.mean(w):.6f} "
+                    f"Min:{np.min(w):.6f} "
+                    f"Max:{np.max(w):.6f} "
+                    f"Std:{np.std(w):.6f}"
+                )
+
+            else:
+
+                d = (
+                    w -
+                    self.old[i]
+                )
+
+                print(
+                    f"W{i + 1} "
+                    f"Mean:{np.mean(w):.6f} "
+                    f"Min:{np.min(w):.6f} "
+                    f"Max:{np.max(w):.6f} "
+                    f"Std:{np.std(w):.6f} "
+                    f"MeanChange:{np.mean(d):.6f} "
+                    f"MaxChange:{np.max(np.abs(d)):.6f}"
+                )
+
+        self.old = [
+            w.copy()
+            for w in new
+        ]
+
+
+
+lstm_stock = models.Sequential([
+
+    layers.Input(
+        shape=(30, 1)
+    ),
+
+    layers.LSTM(
+        50,
+        return_sequences=True
+    ),
+
+    layers.LSTM(
+        50
+    ),
+
+    layers.Dense(
+        1
+    )
+])
+
+
+print(
+    "\n========== LSTM MODEL =========="
+)
+
+lstm_stock.summary()
+
+
+lstm_stock.compile(
+    optimizer="adam",
+    loss="mse"
+)
+
+
+print(
+    "\n========== LSTM TRAINING =========="
+)
+
+hist_lstm = lstm_stock.fit(
+    X_train,
+    y_train,
+    epochs=15,
+    batch_size=32,
+    verbose=0,
+    callbacks=[
+        WeightUpdate()
+    ]
+)
+
+
+
+gru_stock = models.Sequential([
+
+    layers.Input(
+        shape=(30, 1)
+    ),
+
+    layers.GRU(
+        50,
+        return_sequences=True
+    ),
+
+    layers.GRU(
+        50
+    ),
+
+    layers.Dense(
+        1
+    )
+])
+
+
+print(
+    "\n========== GRU MODEL =========="
+)
+
+gru_stock.summary()
+
+
+gru_stock.compile(
+    optimizer="adam",
+    loss="mse"
+)
+
+
+print(
+    "\n========== GRU TRAINING =========="
+)
+
+hist_gru = gru_stock.fit(
+    X_train,
+    y_train,
+    epochs=15,
+    batch_size=32,
+    verbose=0,
+    callbacks=[
+        WeightUpdate()
+    ]
+)
+
+
+
+rnn_stock = models.Sequential([
+
+    layers.Input(
+        shape=(30, 1)
+    ),
+
+    layers.SimpleRNN(
+        50,
+        return_sequences=True
+    ),
+
+    layers.SimpleRNN(
+        50
+    ),
+
+    layers.Dense(
+        1
+    )
+])
+
+
+print(
+    "\n========== SIMPLE RNN MODEL =========="
+)
+
+rnn_stock.summary()
+
+
+rnn_stock.compile(
+    optimizer="adam",
+    loss="mse"
+)
+
+
+print(
+    "\n========== SIMPLE RNN TRAINING =========="
+)
+
+hist_rnn = rnn_stock.fit(
+    X_train,
+    y_train,
+    epochs=15,
+    batch_size=32,
+    verbose=0,
+    callbacks=[
+        WeightUpdate()
+    ]
+)
+
+
+
+bilstm_stock = models.Sequential([
+
+    layers.Input(
+        shape=(30, 1)
+    ),
+
+    layers.Bidirectional(
+        layers.LSTM(
+            50,
+            return_sequences=True
+        )
+    ),
+
+    layers.Bidirectional(
+        layers.LSTM(
+            50
+        )
+    ),
+
+    layers.Dense(
+        1
+    )
+])
+
+
+print(
+    "\n========== BILSTM MODEL =========="
+)
+
+bilstm_stock.summary()
+
+
+bilstm_stock.compile(
+    optimizer="adam",
+    loss="mse"
+)
+
+
+print(
+    "\n========== BILSTM TRAINING =========="
+)
+
+hist_bilstm = bilstm_stock.fit(
+    X_train,
+    y_train,
+    epochs=15,
+    batch_size=32,
+    verbose=0,
+    callbacks=[
+        WeightUpdate()
+    ]
+)
+
+
+
+print(
+    "\n========== PREDICTIONS =========="
+)
+
+pred_lstm = lstm_stock.predict(
+    X_test,
+    verbose=0
+)
+
+pred_gru = gru_stock.predict(
+    X_test,
+    verbose=0
+)
+
+pred_rnn = rnn_stock.predict(
+    X_test,
+    verbose=0
+)
+
+pred_bilstm = bilstm_stock.predict(
+    X_test,
+    verbose=0
+)
+
+
+
+pred_lstm = scaler.inverse_transform(
+    pred_lstm
+)
+
+pred_gru = scaler.inverse_transform(
+    pred_gru
+)
+
+pred_rnn = scaler.inverse_transform(
+    pred_rnn
+)
+
+pred_bilstm = scaler.inverse_transform(
+    pred_bilstm
+)
+
+actual = scaler.inverse_transform(
+    y_test
+)
+
+
+
+print(
+    "\n========== EPOCH LOSS VALUES =========="
+)
+
+for i in range(15):
+
+    print(
+        f"Epoch {i + 1:02d}/15 | "
+        f"LSTM:{hist_lstm.history['loss'][i]:.6f} | "
+        f"GRU:{hist_gru.history['loss'][i]:.6f} | "
+        f"RNN:{hist_rnn.history['loss'][i]:.6f} | "
+        f"BiLSTM:{hist_bilstm.history['loss'][i]:.6f}"
+    )
+
+
+
+print(
+    "\n========== STOCK PREDICTIONS =========="
+)
+
+for i in range(
+    len(actual)
+):
+
+    print(
+        f"Month {i + 1:02d} | "
+        f"Actual:{actual[i][0]:.2f} | "
+        f"LSTM:{pred_lstm[i][0]:.2f} | "
+        f"GRU:{pred_gru[i][0]:.2f} | "
+        f"RNN:{pred_rnn[i][0]:.2f} | "
+        f"BiLSTM:{pred_bilstm[i][0]:.2f}"
+    )
+
+
+
+plt.figure(
+    figsize=(12, 5)
+)
+
+plt.plot(
+    actual,
+    label="Actual"
+)
+
+plt.plot(
+    pred_lstm,
+    label="LSTM"
+)
+
+plt.plot(
+    pred_gru,
+    label="GRU"
+)
+
+plt.plot(
+    pred_rnn,
+    label="Simple RNN"
+)
+
+plt.plot(
+    pred_bilstm,
+    label="BiLSTM"
+)
+
+plt.title(
+    "Stock Price Prediction - Four Models"
+)
+
+plt.xlabel(
+    "Time"
+)
+
+plt.ylabel(
+    "Close Price"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(8, 4)
+)
+
+plt.plot(
+    hist_lstm.history["loss"],
+    marker="o",
+    label="LSTM Loss"
+)
+
+plt.title(
+    "LSTM Training Loss"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "MSE Loss"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(8, 4)
+)
+
+plt.plot(
+    hist_gru.history["loss"],
+    marker="o",
+    label="GRU Loss"
+)
+
+plt.title(
+    "GRU Training Loss"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "MSE Loss"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(8, 4)
+)
+
+plt.plot(
+    hist_rnn.history["loss"],
+    marker="o",
+    label="Simple RNN Loss"
+)
+
+plt.title(
+    "Simple RNN Training Loss"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "MSE Loss"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(8, 4)
+)
+
+plt.plot(
+    hist_bilstm.history["loss"],
+    marker="o",
+    label="BiLSTM Loss"
+)
+
+plt.title(
+    "BiLSTM Training Loss"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "MSE Loss"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(10, 5)
+)
+
+plt.plot(
+    hist_lstm.history["loss"],
+    label="LSTM"
+)
+
+plt.plot(
+    hist_gru.history["loss"],
+    label="GRU"
+)
+
+plt.plot(
+    hist_rnn.history["loss"],
+    label="Simple RNN"
+)
+
+plt.plot(
+    hist_bilstm.history["loss"],
+    label="BiLSTM"
+)
+
+plt.title(
+    "LSTM vs GRU vs Simple RNN vs BiLSTM"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "MSE Loss"
+)
+
+plt.legend()
+
+plt.grid()
+
+plt.show()
+
+
+
+lstm_mse = mean_squared_error(
+    actual,
+    pred_lstm
+)
+
+gru_mse = mean_squared_error(
+    actual,
+    pred_gru
+)
+
+rnn_mse = mean_squared_error(
+    actual,
+    pred_rnn
+)
+
+bilstm_mse = mean_squared_error(
+    actual,
+    pred_bilstm
+)
+
+
+lstm_mae = mean_absolute_error(
+    actual,
+    pred_lstm
+)
+
+gru_mae = mean_absolute_error(
+    actual,
+    pred_gru
+)
+
+rnn_mae = mean_absolute_error(
+    actual,
+    pred_rnn
+)
+
+bilstm_mae = mean_absolute_error(
+    actual,
+    pred_bilstm
+)
+
+
+lstm_rmse = np.sqrt(
+    lstm_mse
+)
+
+gru_rmse = np.sqrt(
+    gru_mse
+)
+
+rnn_rmse = np.sqrt(
+    rnn_mse
+)
+
+bilstm_rmse = np.sqrt(
+    bilstm_mse
+)
+
+
+print(
+    "\n========== TEST METRICS =========="
+)
+
+
+print(
+    "\nLSTM"
+)
+
+print(
+    f"MSE  : {lstm_mse:.6f}"
+)
+
+print(
+    f"MAE  : {lstm_mae:.6f}"
+)
+
+print(
+    f"RMSE : {lstm_rmse:.6f}"
+)
+
+
+print(
+    "\nGRU"
+)
+
+print(
+    f"MSE  : {gru_mse:.6f}"
+)
+
+print(
+    f"MAE  : {gru_mae:.6f}"
+)
+
+print(
+    f"RMSE : {gru_rmse:.6f}"
+)
+
+
+print(
+    "\nSimple RNN"
+)
+
+print(
+    f"MSE  : {rnn_mse:.6f}"
+)
+
+print(
+    f"MAE  : {rnn_mae:.6f}"
+)
+
+print(
+    f"RMSE : {rnn_rmse:.6f}"
+)
+
+
+print(
+    "\nBiLSTM"
+)
+
+print(
+    f"MSE  : {bilstm_mse:.6f}"
+)
+
+print(
+    f"MAE  : {bilstm_mae:.6f}"
+)
+
+print(
+    f"RMSE : {bilstm_rmse:.6f}"
+)
+
+
+
+print(
+    "\n========== TRAINABLE PARAMETERS =========="
+)
+
+print(
+    f"LSTM Parameters    : "
+    f"{lstm_stock.count_params():,}"
+)
+
+print(
+    f"GRU Parameters     : "
+    f"{gru_stock.count_params():,}"
+)
+
+print(
+    f"Simple RNN Params  : "
+    f"{rnn_stock.count_params():,}"
+)
+
+print(
+    f"BiLSTM Parameters  : "
+    f"{bilstm_stock.count_params():,}"
+)
+
+
+
+print(
+    "\n========== FINAL LOSS =========="
+)
+
+print(
+    f"LSTM Final Loss   : "
+    f"{hist_lstm.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"GRU Final Loss    : "
+    f"{hist_gru.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"RNN Final Loss    : "
+    f"{hist_rnn.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"BiLSTM Final Loss : "
+    f"{hist_bilstm.history['loss'][-1]:.8f}"
+)
+
+
+
+print(
+    "\n========== LSTM WEIGHTS =========="
+)
+
+lstm_weights = (
+    lstm_stock.get_weights()
+)
+
+for i, w in enumerate(
+    lstm_weights
+):
+
+    print(
+        f"\nLSTM Weight {i + 1}"
+    )
+
+    print(
+        "Shape:",
+        w.shape
+    )
+
+    print(
+        "Mean:",
+        f"{np.mean(w):.8f}"
+    )
+
+    print(
+        "Minimum:",
+        f"{np.min(w):.8f}"
+    )
+
+    print(
+        "Maximum:",
+        f"{np.max(w):.8f}"
+    )
+
+    print(
+        "Standard Dev:",
+        f"{np.std(w):.8f}"
+    )
+
+
+print(
+    "\n========== GRU WEIGHTS =========="
+)
+
+gru_weights = (
+    gru_stock.get_weights()
+)
+
+for i, w in enumerate(
+    gru_weights
+):
+
+    print(
+        f"\nGRU Weight {i + 1}"
+    )
+
+    print(
+        "Shape:",
+        w.shape
+    )
+
+    print(
+        "Mean:",
+        f"{np.mean(w):.8f}"
+    )
+
+    print(
+        "Minimum:",
+        f"{np.min(w):.8f}"
+    )
+
+    print(
+        "Maximum:",
+        f"{np.max(w):.8f}"
+    )
+
+    print(
+        "Standard Dev:",
+        f"{np.std(w):.8f}"
+    )
+
+
+print(
+    "\n========== SIMPLE RNN WEIGHTS =========="
+)
+
+rnn_weights = (
+    rnn_stock.get_weights()
+)
+
+for i, w in enumerate(
+    rnn_weights
+):
+
+    print(
+        f"\nRNN Weight {i + 1}"
+    )
+
+    print(
+        "Shape:",
+        w.shape
+    )
+
+    print(
+        "Mean:",
+        f"{np.mean(w):.8f}"
+    )
+
+    print(
+        "Minimum:",
+        f"{np.min(w):.8f}"
+    )
+
+    print(
+        "Maximum:",
+        f"{np.max(w):.8f}"
+    )
+
+    print(
+        "Standard Dev:",
+        f"{np.std(w):.8f}"
+    )
+
+
+print(
+    "\n========== BILSTM WEIGHTS =========="
+)
+
+bilstm_weights = (
+    bilstm_stock.get_weights()
+)
+
+for i, w in enumerate(
+    bilstm_weights
+):
+
+    print(
+        f"\nBiLSTM Weight {i + 1}"
+    )
+
+    print(
+        "Shape:",
+        w.shape
+    )
+
+    print(
+        "Mean:",
+        f"{np.mean(w):.8f}"
+    )
+
+    print(
+        "Minimum:",
+        f"{np.min(w):.8f}"
+    )
+
+    print(
+        "Maximum:",
+        f"{np.max(w):.8f}"
+    )
+
+    print(
+        "Standard Dev:",
+        f"{np.std(w):.8f}"
+    )
+
+
+
+print(
+    "\n========== FIRST 10 PREDICTIONS =========="
+)
+
+print(
+    f"{'No.':<8}"
+    f"{'Actual':<15}"
+    f"{'LSTM':<15}"
+    f"{'GRU':<15}"
+    f"{'RNN':<15}"
+    f"{'BiLSTM':<15}"
+)
+
+
+for i in range(
+    min(
+        10,
+        len(actual)
+    )
+):
+
+    print(
+        f"{i + 1:<8}"
+        f"{actual[i][0]:<15.2f}"
+        f"{pred_lstm[i][0]:<15.2f}"
+        f"{pred_gru[i][0]:<15.2f}"
+        f"{pred_rnn[i][0]:<15.2f}"
+        f"{pred_bilstm[i][0]:<15.2f}"
+    )
+
+
+
+print(
+    "\n"
+)
+
+print(
+    "=" * 75
+)
+
+print(
+    "                         SUMMARY"
+)
+
+print(
+    "=" * 75
+)
+
+print(
+    f"\nTotal Dataset Samples : "
+    f"{len(close)}"
+)
+
+print(
+    f"Training Samples      : "
+    f"{len(X_train)}"
+)
+
+print(
+    f"Testing Samples       : "
+    f"{len(X_test)}"
+)
+
+print(
+    "Sequence Length       : 30"
+)
+
+print(
+    "Batch Size            : 32"
+)
+
+print(
+    "Epochs                : 15"
+)
+
+
+print(
+    "\nLSTM:"
+)
+
+print(
+    f"Final Loss            : "
+    f"{hist_lstm.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"Test MSE              : "
+    f"{lstm_mse:.6f}"
+)
+
+print(
+    f"Test MAE              : "
+    f"{lstm_mae:.6f}"
+)
+
+print(
+    f"Test RMSE             : "
+    f"{lstm_rmse:.6f}"
+)
+
+print(
+    f"Parameters            : "
+    f"{lstm_stock.count_params():,}"
+)
+
+
+print(
+    "\nGRU:"
+)
+
+print(
+    f"Final Loss            : "
+    f"{hist_gru.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"Test MSE              : "
+    f"{gru_mse:.6f}"
+)
+
+print(
+    f"Test MAE              : "
+    f"{gru_mae:.6f}"
+)
+
+print(
+    f"Test RMSE             : "
+    f"{gru_rmse:.6f}"
+)
+
+print(
+    f"Parameters            : "
+    f"{gru_stock.count_params():,}"
+)
+
+
+print(
+    "\nSimple RNN:"
+)
+
+print(
+    f"Final Loss            : "
+    f"{hist_rnn.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"Test MSE              : "
+    f"{rnn_mse:.6f}"
+)
+
+print(
+    f"Test MAE              : "
+    f"{rnn_mae:.6f}"
+)
+
+print(
+    f"Test RMSE             : "
+    f"{rnn_rmse:.6f}"
+)
+
+print(
+    f"Parameters            : "
+    f"{rnn_stock.count_params():,}"
+)
+
+
+print(
+    "\nBiLSTM:"
+)
+
+print(
+    f"Final Loss            : "
+    f"{hist_bilstm.history['loss'][-1]:.8f}"
+)
+
+print(
+    f"Test MSE              : "
+    f"{bilstm_mse:.6f}"
+)
+
+print(
+    f"Test MAE              : "
+    f"{bilstm_mae:.6f}"
+)
+
+print(
+    f"Test RMSE             : "
+    f"{bilstm_rmse:.6f}"
+)
+
+print(
+    f"Parameters            : "
+    f"{bilstm_stock.count_params():,}"
+)
+
+
+print(
+    "\n"
+    + "=" * 75
+)
+
+print(
+    "                    PROGRAM COMPLETED"
+)
+
+print(
+    "=" * 75
+)
+
+# Q4. Write a python program to create a sequential model that processes sequences of integers, embeds each integer into a 64-dimensional vector, and then process the sequence of vectors using a LSTM layer.
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+
+
+
+sentences = [
+    "i love machine learning",
+    "this is a good movie",
+    "the weather is beautiful",
+    "i enjoy deep learning",
+    "this product is excellent",
+    "the service was amazing",
+    "i hate this movie",
+    "this is a bad product",
+    "the weather is terrible",
+    "i dislike this service",
+    "the movie was boring",
+    "this product is poor",
+    "machine learning is useful",
+    "deep learning is powerful",
+    "the application works well",
+    "the software is excellent",
+    "this movie is bad",
+    "the product is terrible",
+    "the service is poor",
+    "the application failed"
+]
+
+
+
+y = np.array([
+    1, 1, 1, 1, 1, 1,
+    0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 0, 0, 0, 0
+])
+
+
+
+words = sorted(
+    set(
+        " ".join(sentences).lower().split()
+    )
+)
+
+
+word2idx = {
+    word: i + 1
+    for i, word in enumerate(words)
+}
+
+idx2word = {
+    i: word
+    for word, i in word2idx.items()
+}
+
+vocab_size = len(word2idx) + 1
+
+maxlen = 6
+
+
+
+X = []
+
+for sentence in sentences:
+
+    tokens = [
+        word2idx.get(
+            word,
+            0
+        )
+        for word in sentence.lower().split()
+    ]
+
+    tokens = tokens[:maxlen]
+
+    tokens = tokens + [
+        0
+    ] * (
+        maxlen - len(tokens)
+    )
+
+    X.append(tokens)
+
+
+X = np.array(X)
+
+
+
+print("\n========== INPUT DATA ==========")
+
+for i in range(len(sentences)):
+
+    print(
+        f"{i + 1:02d}. "
+        f"{sentences[i]:30s} "
+        f"Label: {y[i]}"
+    )
+
+print("\nInput Shape:", X.shape)
+print("Output Shape:", y.shape)
+print("Vocabulary Size:", vocab_size)
+
+
+
+print("\n========== WORD LOOKUP TABLE ==========")
+
+for word, index in word2idx.items():
+
+    print(
+        f"{word:20s} -> {index}"
+    )
+
+
+
+seq_model = models.Sequential([
+
+    layers.Input(
+        shape=(maxlen,)
+    ),
+
+    layers.Embedding(
+        input_dim=vocab_size,
+        output_dim=64
+    ),
+
+    layers.LSTM(
+        32
+    ),
+
+    layers.Dense(
+        1,
+        activation="sigmoid"
+    )
+])
+
+
+
+print("\n========== MODEL SUMMARY ==========")
+
+seq_model.summary()
+
+
+
+seq_model.compile(
+    optimizer="adam",
+    loss="binary_crossentropy",
+    metrics=["accuracy"]
+)
+
+
+
+class WeightUpdate(
+    tf.keras.callbacks.Callback
+):
+
+    def on_train_begin(self, logs=None):
+
+        self.old = None
+
+
+    def on_epoch_end(
+        self,
+        epoch,
+        logs=None
+    ):
+
+        new = self.model.get_weights()
+
+        print(
+            f"\nEpoch {epoch + 1}/20 | "
+            f"Loss:{logs['loss']:.6f} | "
+            f"Accuracy:{logs['accuracy']:.6f} | "
+            f"Val Loss:{logs['val_loss']:.6f} | "
+            f"Val Accuracy:{logs['val_accuracy']:.6f}"
+        )
+
+
+        for i, w in enumerate(new):
+
+            if self.old is None:
+
+                print(
+                    f"W{i + 1} "
+                    f"Shape:{w.shape} "
+                    f"Mean:{np.mean(w):.6f} "
+                    f"Min:{np.min(w):.6f} "
+                    f"Max:{np.max(w):.6f} "
+                    f"Std:{np.std(w):.6f}"
+                )
+
+            else:
+
+                d = w - self.old[i]
+
+                print(
+                    f"W{i + 1} "
+                    f"Mean:{np.mean(w):.6f} "
+                    f"Min:{np.min(w):.6f} "
+                    f"Max:{np.max(w):.6f} "
+                    f"Std:{np.std(w):.6f} "
+                    f"MeanChange:{np.mean(d):.6f} "
+                    f"MaxChange:{np.max(np.abs(d)):.6f}"
+                )
+
+
+        self.old = [
+            w.copy()
+            for w in new
+        ]
+
+
+weight_callback = WeightUpdate()
+
+
+
+print("\n========== TRAINING ==========")
+
+hist_seq = seq_model.fit(
+    X,
+    y,
+    epochs=20,
+    batch_size=4,
+    validation_split=0.2,
+    verbose=0,
+    callbacks=[
+        weight_callback
+    ]
+)
+
+
+
+print("\n========== FINAL RESULTS ==========")
+
+for i in range(20):
+
+    print(
+        f"Epoch {i + 1:02d}/20 | "
+        f"Loss:{hist_seq.history['loss'][i]:.6f} | "
+        f"Accuracy:{hist_seq.history['accuracy'][i]:.6f} | "
+        f"Val Loss:{hist_seq.history['val_loss'][i]:.6f} | "
+        f"Val Accuracy:{hist_seq.history['val_accuracy'][i]:.6f}"
+    )
+
+
+
+final_loss = hist_seq.history["loss"][-1]
+final_accuracy = hist_seq.history["accuracy"][-1]
+
+final_val_loss = hist_seq.history["val_loss"][-1]
+final_val_accuracy = hist_seq.history["val_accuracy"][-1]
+
+print("\n========== LAST EPOCH PERFORMANCE ==========")
+
+print(
+    "Training Loss:",
+    round(final_loss, 4)
+)
+
+print(
+    "Training Accuracy:",
+    round(final_accuracy * 100, 2),
+    "%"
+)
+
+print(
+    "Validation Loss:",
+    round(final_val_loss, 4)
+)
+
+print(
+    "Validation Accuracy:",
+    round(final_val_accuracy * 100, 2),
+    "%"
+)
+
+
+
+print("\n========== PREDICTIONS ==========")
+
+predictions = seq_model.predict(
+    X,
+    verbose=0
+)
+
+for i, p in enumerate(
+    predictions
+):
+
+    probability = float(
+        p[0]
+    )
+
+    predicted_class = (
+        1
+        if probability >= 0.5
+        else 0
+    )
+
+    sentiment = (
+        "Positive"
+        if predicted_class == 1
+        else "Negative"
+    )
+
+    print(
+        f"{sentences[i]:30s} | "
+        f"Actual:{y[i]} | "
+        f"Predicted:{predicted_class} | "
+        f"Probability:{probability:.4f} | "
+        f"Sentiment:{sentiment}"
+    )
+
+
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.plot(
+    range(1, 21),
+    hist_seq.history["accuracy"],
+    marker="o",
+    label="Train Accuracy"
+)
+
+plt.plot(
+    range(1, 21),
+    hist_seq.history["val_accuracy"],
+    marker="o",
+    label="Validation Accuracy"
+)
+
+plt.title(
+    "Embedding + LSTM Accuracy"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "Accuracy"
+)
+
+plt.xticks(
+    range(1, 21)
+)
+
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+
+plt.figure(
+    figsize=(8, 5)
+)
+
+plt.plot(
+    range(1, 21),
+    hist_seq.history["loss"],
+    marker="o",
+    label="Train Loss"
+)
+
+plt.plot(
+    range(1, 21),
+    hist_seq.history["val_loss"],
+    marker="o",
+    label="Validation Loss"
+)
+
+plt.title(
+    "Embedding + LSTM Loss"
+)
+
+plt.xlabel(
+    "Epoch"
+)
+
+plt.ylabel(
+    "Loss"
+)
+
+plt.xticks(
+    range(1, 21)
+)
+
+plt.legend()
+plt.grid(True)
+
+plt.show()
+
+
+
+print("\n========== USER DEFINED SENTENCE ==========")
+
+user_sentence = input(
+    "Enter a sentence: "
+).lower().strip()
+
+
+
+user_words = user_sentence.split()
+
+print("\nTokens:")
+print(user_words)
+
+
+
+user_sequence = []
+
+for word in user_words:
+
+    if word in word2idx:
+
+        user_sequence.append(
+            word2idx[word]
+        )
+
+    else:
+
+        user_sequence.append(
+            0
+        )
+
+
+print("\nOriginal Integer Sequence:")
+print(user_sequence)
+
+
+
+user_sequence = user_sequence[
+    :maxlen
+]
+
+user_sequence = (
+    user_sequence
+    + [0] * (
+        maxlen
+        - len(user_sequence)
+    )
+)
+
+
+user_input = np.array([
+    user_sequence
+])
+
+
+print("\nPadded Sequence:")
+print(
+    user_input[0].tolist()
+)
+
+
+
+prediction = seq_model.predict(
+    user_input,
+    verbose=0
+)[0][0]
+
+prediction = float(
+    prediction
+)
+
+
+
+if prediction >= 0.5:
+
+    sentiment = "Positive"
+
+else:
+
+    sentiment = "Negative"
+
+
+
+print(
+    "\nProbability:",
+    round(
+        prediction,
+        4
+    )
+)
+
+print(
+    "Sentiment:",
+    sentiment
+)
+
+
+print("\n========== FINAL USER RESULT ==========")
+
+print(
+    "User Sentence:",
+    user_sentence
+)
+
+print(
+    "Tokens:",
+    user_words
+)
+
+print(
+    "Sequence:",
+    user_input[0].tolist()
+)
+
+print(
+    "Probability:",
+    round(
+        prediction,
+        4
+    )
+)
+
+print(
+    "Sentiment:",
+    sentiment
+)
